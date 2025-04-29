@@ -177,6 +177,7 @@
                             <option value="LK">سريلانكا</option>
                             <option value="PH">الفلبين</option>
                             <option value="JO">الأردن</option>
+                            <option value="JO">جزر القمر</option>
                         </select>
                     </div>
                 </div>
