@@ -272,7 +272,11 @@
                                     'current_residency' => 'الإقامة الحالية',
                                     'pakistani_id' => 'الهوية الباكستانية',
                                     'medical_result' => 'الفحص الطبي',
-                                    'acquaintance_document' => 'وثيقة التعارف'
+                                    'acquaintance_document' => 'وثيقة التعارف',
+                                    'photo' => 'الصورة الشخصية',
+                                    'salary_certificate' => 'شهادة إثبات الراتب/الحالة',
+                                    'sponsorship_transfer_certificate' => 'شهادة نقل الكفالة',
+                                    'employment_certificate' => 'شهادة العمل'
                                 ];
                             @endphp
 
