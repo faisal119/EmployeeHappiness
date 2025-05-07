@@ -140,4 +140,47 @@ class DashboardController extends Controller
             default => $action
         };
     }
+
+    public function statisticsApi() {
+        $filter = request('filter', 'all');
+        $year = request('year');
+        $month = request('month');
+
+        $insuranceQuery = \App\Models\InsuranceRequest::query();
+        $residencyQuery = \App\Models\ResidencyRequest::query();
+        $discountQuery = \App\Models\DiscountCardRequest::query();
+
+        if ($filter === 'year' && $year) {
+            $insuranceQuery->whereYear('created_at', $year);
+            $residencyQuery->whereYear('created_at', $year);
+            $discountQuery->whereYear('created_at', $year);
+        }
+        if ($filter === 'month' && $year && $month) {
+            $insuranceQuery->whereYear('created_at', $year)->whereMonth('created_at', $month);
+            $residencyQuery->whereYear('created_at', $year)->whereMonth('created_at', $month);
+            $discountQuery->whereYear('created_at', $year)->whereMonth('created_at', $month);
+        }
+
+        $statistics = [
+            'insurance' => [
+                'total' => $insuranceQuery->count(),
+                'pending' => (clone $insuranceQuery)->where('status', 'pending')->count(),
+                'approved' => (clone $insuranceQuery)->where('status', 'approved')->count(),
+                'rejected' => (clone $insuranceQuery)->where('status', 'rejected')->count(),
+            ],
+            'residency' => [
+                'total' => $residencyQuery->count(),
+                'pending' => (clone $residencyQuery)->where('status', 'pending')->count(),
+                'approved' => (clone $residencyQuery)->where('status', 'approved')->count(),
+                'rejected' => (clone $residencyQuery)->where('status', 'rejected')->count(),
+            ],
+            'discount_card' => [
+                'total' => $discountQuery->count(),
+                'pending' => (clone $discountQuery)->where('status', 'pending')->count(),
+                'approved' => (clone $discountQuery)->where('status', 'approved')->count(),
+                'rejected' => (clone $discountQuery)->where('status', 'rejected')->count(),
+            ]
+        ];
+        return response()->json($statistics);
+    }
 } 

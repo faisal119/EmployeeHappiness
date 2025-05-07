@@ -213,21 +213,31 @@
 
         @if(isset($statistics))
         <div class="chart-container">
+            <div style="display: flex; justify-content: flex-end; align-items: center; margin-bottom: 1rem;">
+                <label for="statsFilter" style="margin-left: 8px; font-weight: bold; color: #2D1E0F;">تصفية حسب:</label>
+                <select id="statsFilter" style="padding: 8px 16px; border-radius: 8px; border: 1px solid #ccc; font-family: 'Tajawal', sans-serif; font-size: 1rem;">
+                    <option value="all">الكل</option>
+                    <option value="year">سنة محددة</option>
+                    <option value="month">شهر محدد</option>
+                </select>
+                <select id="yearSelect" style="padding: 8px 12px; border-radius: 8px; border: 1px solid #ccc; font-family: 'Tajawal', sans-serif; font-size: 1rem; margin-right: 8px; display: none;"></select>
+                <select id="monthSelect" style="padding: 8px 12px; border-radius: 8px; border: 1px solid #ccc; font-family: 'Tajawal', sans-serif; font-size: 1rem; margin-right: 8px; display: none;"></select>
+            </div>
             <h3 class="chart-title">إحصائيات الطلبات</h3>
             <canvas id="requestsChart"></canvas>
 
             <div class="statistics-grid">
                 <div class="stat-card">
                     <div class="stat-title">طلبات التأمين</div>
-                    <div class="stat-value">{{ $statistics['insurance']['total'] }}</div>
+                    <div class="stat-value" id="insurance-total">{{ $statistics['insurance']['total'] }}</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-title">طلبات الإقامة</div>
-                    <div class="stat-value">{{ $statistics['residency']['total'] }}</div>
+                    <div class="stat-value" id="residency-total">{{ $statistics['residency']['total'] }}</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-title">طلبات الخصم</div>
-                    <div class="stat-value">{{ $statistics['discount_card']['total'] }}</div>
+                    <div class="stat-value" id="discount-total">{{ $statistics['discount_card']['total'] }}</div>
                 </div>
             </div>
         </div>
@@ -241,75 +251,115 @@
 
     @if(isset($statistics))
     <script>
-        const ctx = document.getElementById('requestsChart').getContext('2d');
-        new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: ['طلبات التأمين', 'طلبات الإقامة', 'طلبات الخصم'],
-                datasets: [
-                    {
-                        label: 'قيد المراجعة',
-                        data: [
-                            {{ $statistics['insurance']['pending'] }},
-                            {{ $statistics['residency']['pending'] }},
-                            {{ $statistics['discount_card']['pending'] }}
-                        ],
-                        backgroundColor: '#FFC107',
-                    },
-                    {
-                        label: 'مقبول',
-                        data: [
-                            {{ $statistics['insurance']['approved'] }},
-                            {{ $statistics['residency']['approved'] }},
-                            {{ $statistics['discount_card']['approved'] }}
-                        ],
-                        backgroundColor: '#4CAF50',
-                    },
-                    {
-                        label: 'مرفوض',
-                        data: [
-                            {{ $statistics['insurance']['rejected'] }},
-                            {{ $statistics['residency']['rejected'] }},
-                            {{ $statistics['discount_card']['rejected'] }}
-                        ],
-                        backgroundColor: '#F44336',
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: {
-                        position: 'top',
-                        labels: {
-                            font: {
-                                family: 'Tajawal'
-                            }
+        // إعداد السنوات والشهور
+        const yearSelect = document.getElementById('yearSelect');
+        const monthSelect = document.getElementById('monthSelect');
+        const statsFilter = document.getElementById('statsFilter');
+        // السنوات من 2015 حتى السنة الحالية
+        const currentYear = new Date().getFullYear();
+        yearSelect.innerHTML = '';
+        for(let y = currentYear; y >= 2015; y--) {
+            const opt = document.createElement('option');
+            opt.value = y;
+            opt.textContent = y;
+            yearSelect.appendChild(opt);
+        }
+        // الشهور بالعربي
+        const months = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+        monthSelect.innerHTML = '';
+        for(let m = 1; m <= 12; m++) {
+            const opt = document.createElement('option');
+            opt.value = m;
+            opt.textContent = months[m-1];
+            monthSelect.appendChild(opt);
+        }
+        // إظهار/إخفاء القوائم حسب الفلتر
+        statsFilter.addEventListener('change', function() {
+            if(this.value === 'year') {
+                yearSelect.style.display = '';
+                monthSelect.style.display = 'none';
+            } else if(this.value === 'month') {
+                yearSelect.style.display = '';
+                monthSelect.style.display = '';
+            } else {
+                yearSelect.style.display = 'none';
+                monthSelect.style.display = 'none';
+            }
+            fetchStatistics();
+        });
+        yearSelect.addEventListener('change', fetchStatistics);
+        monthSelect.addEventListener('change', fetchStatistics);
+        // عند تحميل الصفحة، إخفاء القوائم
+        statsFilter.dispatchEvent(new Event('change'));
+
+        // تحديث الإحصائيات عبر AJAX
+        let chartInstance = null;
+        // عند تحميل الصفحة أول مرة، أنشئ الرسم البياني
+        document.addEventListener('DOMContentLoaded', function() {
+            const ctx = document.getElementById('requestsChart').getContext('2d');
+            chartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['طلبات التأمين', 'طلبات الإقامة', 'طلبات الخصم'],
+                    datasets: [
+                        {
+                            label: 'قيد المراجعة',
+                            data: [{{ $statistics['insurance']['pending'] }}, {{ $statistics['residency']['pending'] }}, {{ $statistics['discount_card']['pending'] }}],
+                            backgroundColor: '#FFC107',
+                        },
+                        {
+                            label: 'مقبول',
+                            data: [{{ $statistics['insurance']['approved'] }}, {{ $statistics['residency']['approved'] }}, {{ $statistics['discount_card']['approved'] }}],
+                            backgroundColor: '#4CAF50',
+                        },
+                        {
+                            label: 'مرفوض',
+                            data: [{{ $statistics['insurance']['rejected'] }}, {{ $statistics['residency']['rejected'] }}, {{ $statistics['discount_card']['rejected'] }}],
+                            backgroundColor: '#F44336',
                         }
-                    },
-                    title: {
-                        display: false
-                    }
+                    ]
                 },
-                scales: {
-                    x: {
-                        ticks: {
-                            font: {
-                                family: 'Tajawal'
-                            }
-                        }
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: { font: { family: 'Tajawal' } }
+                        },
+                        title: { display: false }
                     },
-                    y: {
-                        beginAtZero: true,
-                        ticks: {
-                            font: {
-                                family: 'Tajawal'
-                            }
-                        }
+                    scales: {
+                        x: { ticks: { font: { family: 'Tajawal' } } },
+                        y: { beginAtZero: true, ticks: { font: { family: 'Tajawal' } } }
                     }
                 }
-            }
+            });
         });
+        function fetchStatistics() {
+            let filter = statsFilter.value;
+            let year = yearSelect.value;
+            let month = monthSelect.value;
+            let params = { filter };
+            if(filter === 'year') params.year = year;
+            if(filter === 'month') { params.year = year; params.month = month; }
+            fetch('/admin/dashboard/statistics?' + new URLSearchParams(params), {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+            .then(res => res.json())
+            .then(data => {
+                // تحديث الصناديق
+                document.getElementById('insurance-total').textContent = data.insurance.total;
+                document.getElementById('residency-total').textContent = data.residency.total;
+                document.getElementById('discount-total').textContent = data.discount_card.total;
+                // تحديث بيانات الرسم البياني فقط
+                if(chartInstance) {
+                    chartInstance.data.datasets[0].data = [data.insurance.pending, data.residency.pending, data.discount_card.pending];
+                    chartInstance.data.datasets[1].data = [data.insurance.approved, data.residency.approved, data.discount_card.approved];
+                    chartInstance.data.datasets[2].data = [data.insurance.rejected, data.residency.rejected, data.discount_card.rejected];
+                    chartInstance.update();
+                }
+            });
+        }
     </script>
     @endif
 </body>

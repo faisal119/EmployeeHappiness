@@ -92,6 +92,8 @@ Route::middleware(['web'])->group(function () {
 Route::middleware(['auth:admin'])->prefix('admin')->name('admin.')->group(function () {
     // 🔹 لوحة التحكم
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    // 🔹 API لإحصائيات لوحة التحكم
+    Route::get('/dashboard/statistics', [DashboardController::class, 'statisticsApi'])->name('dashboard.statistics.api');
     
     // تحديث تعريف مسارات المشرفين
     Route::get('/users', [UserController::class, 'index'])->name('users.index');
