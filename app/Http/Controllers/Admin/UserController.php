@@ -64,12 +64,17 @@ class UserController extends Controller
                 'request_data' => $request->except(['password']) // لا نقوم بتسجيل كلمة المرور في السجلات
             ]);
 
-            // التحقق من أن المستخدم الحالي لا يقوم بتعديل نفسه
-            if ($admin->id === auth()->id()) {
-                Log::warning('❌ محاولة تعديل الحساب الشخصي من صفحة المشرفين:', [
-                    'admin_id' => $admin->id
+            // حماية حساب it@aguard.gov.ae
+            $targetIsIT = ($admin->email === 'it@aguard.gov.ae');
+            $currentIsIT = (auth()->user() && auth()->user()->email === 'it@aguard.gov.ae');
+            if ($targetIsIT && !$currentIsIT) {
+                Log::warning('❌ محاولة تعديل حساب it@aguard.gov.ae من قبل مشرف آخر:', [
+                    'admin_id' => $admin->id,
+                    'admin_email' => $admin->email,
+                    'by_admin_id' => auth()->id(),
+                    'by_admin_email' => auth()->user() ? auth()->user()->email : 'غير معروف'
                 ]);
-                return redirect()->back()->with('error', 'لا يمكنك تعديل حسابك الخاص من هنا');
+                return redirect()->back()->with('error', 'لا يمكنك تعديل هذا الحساب. الصلاحية فقط لـ it@aguard.gov.ae')->withInput();
             }
 
             // التحقق من البريد الإلكتروني
@@ -113,12 +118,15 @@ class UserController extends Controller
                 $oldEmail = $admin->email;
                 $admin->name = $request->name;
                 $admin->email = $request->email;
-                
+                $passwordChanged = false;
                 if ($request->filled('password')) {
-                    Log::info('🔄 تحديث كلمة المرور للمشرف:', [
-                        'admin_id' => $admin->id
+                    Log::info('🔄 تم تغيير كلمة المرور للمشرف:', [
+                        'admin_id' => $admin->id,
+                        'admin_email' => $admin->email,
+                        'changed_by' => auth()->user() ? auth()->user()->email : 'غير معروف'
                     ]);
                     $admin->password = Hash::make($request->password);
+                    $passwordChanged = true;
                 }
 
                 $admin->save();
@@ -128,13 +136,17 @@ class UserController extends Controller
                     'name' => $admin->name,
                     'old_email' => $oldEmail,
                     'new_email' => $admin->email,
-                    'password_updated' => $request->filled('password')
+                    'password_updated' => $passwordChanged
                 ]);
 
                 DB::commit();
 
+                $successMsg = 'تم تحديث بيانات المشرف بنجاح';
+                if ($passwordChanged) {
+                    $successMsg .= ' وتم تغيير كلمة المرور.';
+                }
                 return redirect()->route('admin.users.index')
-                    ->with('success', 'تم تحديث بيانات المشرف بنجاح');
+                    ->with('success', $successMsg);
 
             } catch (\Exception $e) {
                 DB::rollBack();

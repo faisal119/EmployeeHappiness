@@ -8,13 +8,13 @@
                 <div class="card-header">تعديل المستخدم</div>
 
                 <div class="card-body">
-                    <form method="POST" action="{{ route('admin.users.update', ['admin' => $user->id]) }}">
+                    <form method="POST" action="{{ route('admin.users.update', ['admin' => $admin->id]) }}">
                         @csrf
                         @method('PUT')
 
                         <div class="form-group mb-3">
                             <label for="name">الاسم</label>
-                            <input id="name" type="text" class="form-control @error('name') is-invalid @enderror" name="name" value="{{ old('name', $user->name) }}" required>
+                            <input id="name" type="text" class="form-control @error('name') is-invalid @enderror" name="name" value="{{ old('name', $admin->name) }}" required>
                             @error('name')
                                 <span class="invalid-feedback" role="alert">
                                     <strong>{{ $message }}</strong>
@@ -24,7 +24,7 @@
 
                         <div class="form-group mb-3">
                             <label for="email">البريد الإلكتروني</label>
-                            <input id="email" type="email" class="form-control @error('email') is-invalid @enderror" name="email" value="{{ old('email', $user->email) }}" required>
+                            <input id="email" type="email" class="form-control @error('email') is-invalid @enderror" name="email" value="{{ old('email', $admin->email) }}" required>
                             @error('email')
                                 <span class="invalid-feedback" role="alert">
                                     <strong>{{ $message }}</strong>
