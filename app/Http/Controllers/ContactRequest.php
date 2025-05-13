@@ -6,7 +6,7 @@ use App\Models\ContactRequest;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\ContactMail;
 
-class ContactController extends Controller
+class ContactRequest extends Controller
 {
     public function show()
     {
