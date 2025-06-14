@@ -37,8 +37,7 @@
 
             <div>
                 <label class="block text-gray-700">تأكيد كلمة المرور الجديدة:</label>
-                <input type="password" name="confirm_password" required class="w-full p-2 border rounded">
-            </div>
+                <input type="password" name="confirm_password" required class="w-full p-2 border rounded">nfgnfg
 
             <button type="submit" class="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600">
                 تحديث كلمة المرور
